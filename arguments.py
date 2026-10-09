@@ -1,20 +1,19 @@
 import argparse
 import torch
-import numpy as np
 
 def get_args():
     parser = argparse.ArgumentParser(description="CBM / EGM Training Arguments")
     
     # Paths
     parser.add_argument('--data', type=str, default='./data/oxford-iiit-pet', help="Path to dataset")
-    parser.add_argument('--dataset', type=str, default='oxford', choices=['cifar10', 'oxford'])
+    parser.add_argument('--dataset', type=str, default='oxford', choices=['oxford'])
     parser.add_argument('--model_name', type=str, default='resnet18')
     
     # Method Switch
     parser.add_argument('--mask_metric', type=str, default='entropy', choices=['gradient', 'entropy'])
 
     # Hyperparameters
-    parser.add_argument('--lr', type=float, default=0.01) 
+    parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--batch_size', type=int, default=32)
     
 
@@ -25,7 +24,8 @@ def get_args():
 
     # Curriculum
     parser.add_argument('--max_mask_ratio', type=float, default=0.75)
-    parser.add_argument('--schedule_type', type=str, default='linear_repeat')
+    parser.add_argument('--schedule_type', type=str, default='linear_repeat',
+                        choices=['constant', 'linear', 'linear_repeat'])
 
     args = parser.parse_args()
 

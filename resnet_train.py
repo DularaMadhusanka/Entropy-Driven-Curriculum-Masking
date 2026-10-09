@@ -1,17 +1,17 @@
-import os, sys
-import cv2
-import numpy as np
+import os
 import torch
 from tqdm import tqdm
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from test import test
 
 class Trainer:
     def __init__(self, model, train_loader, val_loader, args, build_optimizer):
         self.args = args
         self.model = model
         self.optimizer = build_optimizer(model)
+        if hasattr(args, 'lr'):
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = args.lr
         self.ce_loss = F.cross_entropy
         
         # Store device and move model there
@@ -27,7 +27,8 @@ class Trainer:
         self.val_accuracies = []
 
     def train(self):
-        best_accuracy = 0.
+        best_accuracy = float('-inf')
+        best_state = None
         
         for epoch in range(1, self.args.num_epochs + 1):
             print('Epoch', epoch)
@@ -43,33 +44,59 @@ class Trainer:
             train_loss, train_acc = self._train_epoch(epoch-1)
             
             # 2. Test (Validation)
-            test_acc = test(self.model, self.args.device, self.val_loader)
-            
-            # 3. Test (Test Set - Optional, if different from Val)
-            if hasattr(self.args, 'testlo') and self.args.testlo:
-                test(self.model, self.args.device, self.args.testlo)
+            val_acc = self._evaluate_accuracy(self.val_loader)
             
             # Store metrics
             self.train_losses.append(train_loss)
             self.train_accuracies.append(train_acc)
-            self.val_accuracies.append(test_acc)
+            self.val_accuracies.append(val_acc)
             
             # Print epoch summary
             print(f'Epoch {epoch} Summary:')
-            print(f'  Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, Val Acc: {test_acc:.2f}%')
+            print(f'  Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%')
             
             # Plot metrics every epoch
             self._plot_metrics(epoch)
             
-            # Track best accuracy but only save at the very end
-            if best_accuracy < test_acc:
-                best_accuracy = test_acc
+            if best_accuracy < val_acc:
+                best_accuracy = val_acc
+                best_state = {
+                    name: tensor.detach().cpu().clone()
+                    for name, tensor in self.model.state_dict().items()
+                }
                 print(f'New best accuracy: {best_accuracy:.2f}%')
         
-        # Save best model at the end of all epochs
+        if best_state is None:
+            raise RuntimeError("Training completed without producing a best model checkpoint.")
+
+        self.model.load_state_dict(best_state)
         os.makedirs("./saved_models", exist_ok=True)
-        torch.save(self.model.state_dict(), os.path.join("saved_models", self.args.model_name + ".pth"))
-        print(f'Final model saved to ./saved_models/{self.args.model_name}.pth')
+        checkpoint_path = os.path.join("saved_models", self.args.model_name + ".pth")
+        torch.save(best_state, checkpoint_path)
+        print(f'Best model saved to {checkpoint_path} (validation accuracy: {best_accuracy:.2f}%)')
+
+    def _evaluate_accuracy(self, data_loader):
+        self.model.eval()
+        correct = 0
+        processed = 0
+
+        with torch.no_grad():
+            for batch in data_loader:
+                if len(batch) == 3:
+                    data, target, probability = batch
+                    probability = probability.to(self.device)
+                else:
+                    data, target = batch
+                    probability = torch.zeros(data.size(0), 16, device=self.device)
+
+                data, target = data.to(self.device), target.to(self.device)
+                predictions = self.model(data, 0.0, probability).argmax(dim=1)
+                correct += predictions.eq(target).sum().item()
+                processed += target.size(0)
+
+        if processed == 0:
+            raise ValueError("Cannot evaluate accuracy: the data loader is empty.")
+        return 100 * correct / processed
     
     def _plot_metrics(self, epoch):
         """Plot training and validation metrics after each epoch."""

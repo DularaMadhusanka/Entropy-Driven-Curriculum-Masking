@@ -1,37 +1,20 @@
-import copy
-import math
 import os
 import time
-import numpy as np
 import torch
-import torchvision
 from torch import optim
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 
-import arguments
-# Import the unified loader from your data_handlers.py
-from data_handlers import get_oxford_loaders 
+from data_handlers import get_oxford_loaders
 from models.resnet import ResNet18
 from resnet_train import Trainer 
-from fibonacci import fibonacci
 
 # --- 1. Optimizers & Schedules ---
 
 def build_optimizer_resnet(model):
     return optim.SGD(model.parameters(), lr=0.1, weight_decay=5e-4, momentum=0.9)
-
-# (lin_repeat is no longer used but kept for reference)
-def lin_repeat():
-    """Fibonacci-based Linear Repeat Schedule"""
-    v = fibonacci(length=7)
-    for i in range(1, len(v)):
-        v[i] = math.log(v[i]) / (math.log(v[6]) / 0.4036067977500615)
-    v = v[2:]
-    v[0] = 0.07
-    return v
 
 # --- 2. Visualization & Evaluation ---
 
@@ -77,7 +60,7 @@ def evaluate_performance(model, device, test_loader, classes):
     y_pred = []
 
     with torch.no_grad():
-        for i, batch in enumerate(test_loader):
+        for batch in test_loader:
             if len(batch) == 3:
                 images, labels, _ = batch # Ignore the dummy probability
             else:
@@ -156,8 +139,6 @@ def train_oxford(args):
         batch_size=args.batch_size,
         resize=224
     )
-    args.testlo = test_loader
-
     # 4. Setup Model
     print("Initializing ResNet18...")
     model = ResNet18(num_classes=args.num_classes)
