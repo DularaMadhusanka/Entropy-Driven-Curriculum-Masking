@@ -16,42 +16,23 @@ local texture-complexity score.
 
 ### Scoring and masking formula
 
-Let \(I\) be the input image converted to grayscale:
+Let $I$ be the input image converted to grayscale:
 
-\[
-I = 0.299R + 0.587G + 0.114B
-\]
+$$I = 0.299R + 0.587G + 0.114B$$
 
-For the `entropy` option, each pixel receives a local standard-deviation score
-computed over a 3 × 3 neighborhood:
+For the `entropy` option, each pixel receives a local standard-deviation score computed over a $3 \times 3$ neighborhood:
 
-\[
-s(x,y) =
-\sqrt{\max\left(
-\operatorname{mean}_{3\times3}(I^2)
-- \operatorname{mean}_{3\times3}(I)^2,\;
-10^{-8}
-\right)}
-\]
+$$s(x,y) = \sqrt{\max\left( \operatorname{mean}_{3\times3}(I^2) - \operatorname{mean}_{3\times3}(I)^2,\, 10^{-8} \right)}$$
 
-This is a local texture-variation proxy, not Shannon entropy. For the
-`gradient` option, the score is Sobel gradient magnitude:
+This is a local texture-variation proxy, not Shannon entropy. For the `gradient` option, the score is Sobel gradient magnitude:
 
-\[
-s(x,y) = \sqrt{G_x(x,y)^2 + G_y(x,y)^2 + 10^{-8}}
-\]
+$$s(x,y) = \sqrt{G_x(x,y)^2 + G_y(x,y)^2 + 10^{-8}}$$
 
-Each score map is average-pooled to a 4 × 4 grid. The 16 patch scores
-\(q_i\) are normalized per image:
+Each score map is average-pooled to a $4 \times 4$ grid. The 16 patch scores ($q_i$) are normalized per image:
 
-\[
-p_i = \frac{q_i}{\sum_{j=1}^{16} q_j + 10^{-6}}
-\]
+$$p_i = \frac{q_i}{\sum_{j=1}^{16} q_j + 10^{-6}}$$
 
-At a curriculum mask ratio \(r\), the model masks
-\(\lfloor 16r \rfloor\) patches with the largest \(p_i\) scores by setting
-their pixels to zero. The ratio \(r\) is generated for each epoch by the
-selected curriculum schedule.
+At a curriculum mask ratio $r$, the model masks $\lfloor 16r \rfloor$ patches with the largest $p_i$ scores by setting their pixels to zero. The ratio $r$ is generated for each epoch by the selected curriculum schedule.
 
 ## Repository layout
 
