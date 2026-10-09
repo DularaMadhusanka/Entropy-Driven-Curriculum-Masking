@@ -22,7 +22,7 @@ $$I = 0.299R + 0.587G + 0.114B$$
 
 For the `entropy` option, each pixel receives a local standard-deviation score computed over a $3 \times 3$ neighborhood:
 
-$$s(x,y) = \sqrt{\max\left( \operatorname{mean}_{3\times3}(I^2) - \operatorname{mean}_{3\times3}(I)^2,\, 10^{-8} \right)}$$
+$$s(x,y) = \sqrt{\max\left( \text{mean}_{3\times3}(I^2) - \text{mean}_{3\times3}(I)^2,\, 10^{-8} \right)}$$
 
 This is a local texture-variation proxy, not Shannon entropy. For the `gradient` option, the score is Sobel gradient magnitude:
 
